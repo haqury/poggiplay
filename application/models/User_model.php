@@ -5,6 +5,7 @@ namespace Model;
 use App;
 use CI_Emerald_Model;
 use Exception;
+use Library\LogicException;
 use stdClass;
 
 /**
@@ -14,9 +15,12 @@ use stdClass;
  * Time: 10:10
  */
 class User_model extends CI_Emerald_Model {
+
     const CLASS_TABLE = 'user';
 
 
+    /** @var int */
+    protected $id;
     /** @var string */
     protected $email;
     /** @var string */
@@ -42,6 +46,36 @@ class User_model extends CI_Emerald_Model {
 
 
     private static $_current_user;
+
+    /**
+     * @param string $login
+     * @param string $password
+     * @return static
+     * @throws LogicException
+     */
+    public static function getByLoginPassword(string $login, string $password): self
+    {
+        $query = App::get_ci()->db->get_where(
+            'user',
+            [
+                'email' => $login,
+                'password' => $password
+            ]
+        );
+        $users = $query->result();
+        if (empty($users) || empty($users[0])) {
+            throw new LogicException('Пользователь с такими данными не найден');
+        }
+        return (new User_model($users[0]->id))->reload();
+    }
+
+    /**
+     * @return int
+     */
+    public function get_id(): int
+    {
+        return $this->id;
+    }
 
     /**
      * @return string

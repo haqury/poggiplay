@@ -3,6 +3,7 @@
 use Model\Login_model;
 use Model\Post_model;
 use Model\User_model;
+use Library\LogicException;
 
 /**
  * Created by PhpStorm.
@@ -84,24 +85,17 @@ class Main_page extends MY_Controller
     }
 
 
-    public function login($user_id)
+    public function login()
     {
-        // Right now for tests we use from contriller
-        $login = App::get_ci()->input->post('login');
-        $password = App::get_ci()->input->post('password');
-
-        if (empty($login) || empty($password)){
-            return $this->response_error(CI_Core::RESPONSE_GENERIC_WRONG_PARAMS);
+        $this->load->database();
+        try {
+            $login = new Login_model($this->input->post());
+            $login->authentication();
+        } catch (LogicException $exception){
+            return $exception->getError();
         }
 
-        // But data from modal window sent by POST request.  App::get_ci()->input...  to get it.
-
-
-        //Todo: 1 st task - Authorisation.
-
-        Login_model::start_session($user_id);
-
-        return $this->response_success(['user' => $user_id]);
+        return $this->response_success(['user' => $login->getUserId()]);
     }
 
 
