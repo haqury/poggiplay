@@ -63,7 +63,7 @@ class Login_model extends \CI_Emerald_Model
 
     public function getUserId()
     {
-        return $this->user->id;
+        return $this->user->get_id();
     }
 
     private function setAttributes($data): void
