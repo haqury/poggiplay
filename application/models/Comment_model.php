@@ -1,4 +1,8 @@
 <?php
+namespace Model;
+
+use Model\Comment_full_info_model;
+use Model\Like_interface;
 
 /**
  * Created by PhpStorm.
@@ -6,7 +10,7 @@
  * Date: 27.01.2020
  * Time: 10:10
  */
-class Comment_model extends CI_Emerald_Model
+class Comment_model extends \CI_Emerald_Model implements Like_interface
 {
     const CLASS_TABLE = 'comment';
 
@@ -15,6 +19,8 @@ class Comment_model extends CI_Emerald_Model
     protected $user_id;
     /** @var int */
     protected $assing_id;
+    /** @var int */
+    protected $parent_comment_id;
     /** @var string */
     protected $text;
 
@@ -87,6 +93,17 @@ class Comment_model extends CI_Emerald_Model
         return $this->save('text', $text);
     }
 
+    public function get_parent_comment_id(): ?int
+    {
+        return $this->parent_comment_id;
+    }
+
+    public function set_parent_comment_id(int $parent_comment_id): bool
+    {
+        $this->parent_comment_id = $parent_comment_id;
+        return $this->save('parent_comment_id', $parent_comment_id);
+    }
+
 
     /**
      * @return string
@@ -153,7 +170,7 @@ class Comment_model extends CI_Emerald_Model
         {
             try {
                 $this->user = new User_model($this->get_user_id());
-            } catch (Exception $exception)
+            } catch (\Exception $exception)
             {
                 $this->user = new User_model();
             }
@@ -176,30 +193,29 @@ class Comment_model extends CI_Emerald_Model
 
     public static function create(array $data)
     {
-        App::get_ci()->s->from(self::CLASS_TABLE)->insert($data)->execute();
-        return new static(App::get_ci()->s->get_insert_id());
+        \App::get_ci()->s->from(self::CLASS_TABLE)->insert($data)->execute();
+        return new static(\App::get_ci()->s->get_insert_id());
     }
 
     public function delete()
     {
         $this->is_loaded(TRUE);
-        App::get_ci()->s->from(self::CLASS_TABLE)->where(['id' => $this->get_id()])->delete()->execute();
-        return (App::get_ci()->s->get_affected_rows() > 0);
+        \App::get_ci()->s->from(self::CLASS_TABLE)->where(['id' => $this->get_id()])->delete()->execute();
+        return (\App::get_ci()->s->get_affected_rows() > 0);
     }
 
     /**
      * @param int $assting_id
      * @return self[]
-     * @throws Exception
+     * @throws \Exception
      */
     public static function get_all_by_assign_id(int $assting_id)
     {
-
-        $data = App::get_ci()->s->from(self::CLASS_TABLE)->where(['assign_id' => $assting_id])->orderBy('time_created','ASC')->many();
+        $data = \App::get_ci()->s->from(self::CLASS_TABLE)->where(['assign_id' => $assting_id])->orderBy('time_created','ASC')->many();
         $ret = [];
         foreach ($data as $i)
         {
-            $ret[] = (new self())->set($i);
+            $ret[$i['id']] = (new self())->set($i);
         }
         return $ret;
     }
@@ -208,7 +224,7 @@ class Comment_model extends CI_Emerald_Model
      * @param self|self[] $data
      * @param string $preparation
      * @return stdClass|stdClass[]
-     * @throws Exception
+     * @throws \Exception
      */
     public static function preparation($data, $preparation = 'default')
     {
@@ -217,35 +233,26 @@ class Comment_model extends CI_Emerald_Model
             case 'full_info':
                 return self::_preparation_full_info($data);
             default:
-                throw new Exception('undefined preparation type');
+                throw new \Exception('undefined preparation type');
         }
     }
 
 
     /**
      * @param self[] $data
-     * @return stdClass[]
+     * @return Comment_full_info_model[]
      */
     private static function _preparation_full_info($data)
     {
         $ret = [];
 
-        foreach ($data as $d){
-            $o = new stdClass();
-
-            $o->id = $d->get_id();
-            $o->text = $d->get_text();
-
-            $o->user = User_model::preparation($d->get_user(),'main_page');
-
-            $o->likes = rand(0, 25);
-
-            $o->time_created = $d->get_time_created();
-            $o->time_updated = $d->get_time_updated();
-
-            $ret[] = $o;
+        foreach ($data as $comment) {
+            $ret[$comment->id] = new Comment_full_info_model($comment);
+            if (!empty($comment->parent_comment_id)) $ret[$comment->parent_comment_id]->comments[] = $ret[$comment->id];
         }
-
+        foreach ($ret as $comment) {
+            if (!empty($comment->parent_comment_id)) unset($ret[$comment->id]);
+        }
 
         return $ret;
     }

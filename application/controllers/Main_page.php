@@ -18,6 +18,7 @@ class Main_page extends MY_Controller
     {
         parent::__construct();
 
+        $this->load->database();
         if (is_prod())
         {
             die('In production it will be hard to debug! Run as development environment!');
@@ -37,7 +38,8 @@ class Main_page extends MY_Controller
         return $this->response_success(['posts' => $posts]);
     }
 
-    public function get_post($post_id){ // or can be $this->input->post('news_id') , but better for GET REQUEST USE THIS
+    public function get_post($post_id)
+    {
 
         $post_id = intval($post_id);
 
@@ -58,44 +60,50 @@ class Main_page extends MY_Controller
     }
 
 
-    public function comment($post_id,$message){ // or can be App::get_ci()->input->post('news_id') , but better for GET REQUEST USE THIS ( tests )
-
-        if (!User_model::is_logged()){
-            return $this->response_error(CI_Core::RESPONSE_GENERIC_NEED_AUTH);
-        }
-
-        $post_id = intval($post_id);
-
-        if (empty($post_id) || empty($message)){
-            return $this->response_error(CI_Core::RESPONSE_GENERIC_WRONG_PARAMS);
+    public function comment()
+    {
+        try {
+            $form = new \Model\Comment_form_model($this->input->post());
+            $form->validate();
+        } catch (\LogicException $exception) {
+            return $this->response_error($exception->getMessage());
         }
 
         try
         {
-            $post = new Post_model($post_id);
+            $post = new Post_model($form->post_id);
         } catch (EmeraldModelNoDataException $ex){
             return $this->response_error(CI_Core::RESPONSE_GENERIC_NO_DATA);
         }
 
-        // Todo: 2 nd task Comment
-        $post->comment();
-
+        $post->comment($form);
         $posts =  Post_model::preparation($post, 'full_info');
+
         return $this->response_success(['post' => $posts]);
     }
 
 
     public function login()
     {
-        $this->load->database();
         try {
             $login = new Login_model($this->input->post());
             $login->authentication();
-        } catch (LogicException $exception){
-            return $exception->getError();
+        } catch (\LogicException $exception) {
+            return $this->response_error($exception->getMessage());
         }
 
         return $this->response_success(['user' => $login->getUserId()]);
+    }
+
+    public function like()
+    {
+        try {
+            $form = new \Model\Like_form_model($this->input->post());
+            $form->validate();
+            $form->like();
+        } catch (\LogicException $exception) {
+            return $this->response_error($exception->getMessage());
+        }
     }
 
 
@@ -113,12 +121,6 @@ class Main_page extends MY_Controller
     public function buy_boosterpack(){
         // todo: 5th task add money to user logic
         return $this->response_success(['amount' => rand(1,55)]); // Колво лайков под постом \ комментарием чтобы обновить . Сейчас рандомная заглушка
-    }
-
-
-    public function like(){
-        // todo: 3rd task add like post\comment logic
-        return $this->response_success(['likes' => rand(1,55)]); // Колво лайков под постом \ комментарием чтобы обновить . Сейчас рандомная заглушка
     }
 
 }

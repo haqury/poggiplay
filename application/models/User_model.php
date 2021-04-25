@@ -33,6 +33,8 @@ class User_model extends CI_Emerald_Model {
     protected $avatarfull;
     /** @var int */
     protected $rights;
+    /** @var int */
+    protected $like;
     /** @var float */
     protected $wallet_balance;
     /** @var float */
@@ -51,7 +53,7 @@ class User_model extends CI_Emerald_Model {
      * @param string $login
      * @param string $password
      * @return static
-     * @throws LogicException
+     * @throws \LogicException
      */
     public static function getByLoginPassword(string $login, string $password): self
     {
@@ -64,7 +66,23 @@ class User_model extends CI_Emerald_Model {
         );
         $users = $query->result();
         if (empty($users) || empty($users[0])) {
-            throw new LogicException('Пользователь с такими данными не найден');
+            throw new \LogicException(\CI_Core::RESPONSE_GENERIC_WRONG_PARAMS);
+        }
+        return (new User_model($users[0]->id))->reload();
+    }
+
+    /**
+     * @param string $login
+     * @param string $password
+     * @return static
+     * @throws \LogicException
+     */
+    public static function getById(int $id): self
+    {
+        $query = App::get_ci()->db->get_where('user', ['id' => $id]);
+        $users = $query->result();
+        if (empty($users) || empty($users[0])) {
+            throw new \LogicException(\CI_Core::RESPONSE_GENERIC_WRONG_PARAMS);
         }
         return (new User_model($users[0]->id))->reload();
     }
@@ -159,6 +177,14 @@ class User_model extends CI_Emerald_Model {
     public function get_rights(): int
     {
         return $this->rights;
+    }
+
+    /**
+     * @return int
+     */
+    public function getLike(): int
+    {
+        return $this->like;
     }
 
     /**

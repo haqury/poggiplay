@@ -1,9 +1,9 @@
 <?php
 
 namespace Model;
+
 use App;
 use CI_Emerald_Model;
-use Comment_model;
 use Exception;
 use stdClass;
 
@@ -13,7 +13,8 @@ use stdClass;
  * Date: 27.01.2020
  * Time: 10:10
  */
-class Post_model extends CI_Emerald_Model {
+class Post_model extends CI_Emerald_Model implements Like_interface
+{
     const CLASS_TABLE = 'post';
 
 
@@ -202,8 +203,18 @@ class Post_model extends CI_Emerald_Model {
         return (App::get_ci()->s->get_affected_rows() > 0);
     }
 
-    public function comment(){
+    public function comment(Comment_form_model $form): bool
+    {
+        $data = [
+            'text' => $form->message,
+            'assign_id' => $this->id,
+            'user_id' => $form->user->get_id()
+        ];
+        if (!empty($form->comment_id)) $data['parent_comment_id'] = $form->comment_id;
 
+        Comment_model::create($data);
+
+        return true;
     }
 
     /**
@@ -270,27 +281,17 @@ class Post_model extends CI_Emerald_Model {
         return $ret;
     }
 
-
-    /**
-     * @param Post_model $data
-     * @return stdClass
-     */
     private static function _preparation_full_info(Post_model $data)
     {
         $o = new stdClass();
 
-
         $o->id = $data->get_id();
         $o->img = $data->get_img();
 
-
-//            var_dump($d->get_user()->object_beautify()); die();
-
         $o->user = User_model::preparation($data->get_user(), 'main_page');
-        $o->coments = Comment_model::preparation($data->get_comments(), 'full_info');
+        $o->coments = \Model\Comment_model::preparation($data->get_comments(), 'full_info');
 
         $o->likes = rand(0, 25);
-
 
         $o->time_created = $data->get_time_created();
         $o->time_updated = $data->get_time_updated();
@@ -300,6 +301,4 @@ class Post_model extends CI_Emerald_Model {
 
         return $o;
     }
-
-
 }

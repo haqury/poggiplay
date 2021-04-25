@@ -44,7 +44,7 @@ class Login_model extends \CI_Emerald_Model
 
     /**
      * @return bool
-     * @throws LogicException
+     * @throws \LogicException
      */
     public function authentication(): bool
     {
@@ -57,7 +57,7 @@ class Login_model extends \CI_Emerald_Model
 
     public function validate(): bool
     {
-        if (empty($this->login) || empty($this->password)) throw new LogicException(\CI_Core::RESPONSE_GENERIC_WRONG_PARAMS);
+        if (empty($this->login) || empty($this->password)) throw new \LogicException(\CI_Core::RESPONSE_GENERIC_WRONG_PARAMS);
         return true;
     }
 
